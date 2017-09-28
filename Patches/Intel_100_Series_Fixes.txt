@@ -1,1 +1,1 @@
-
+into_all all code_regex _T_([0-6]) replaceall_matched begin T_%1 end;
