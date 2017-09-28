@@ -1,0 +1,51 @@
+#Maintained by: RehabMan for: Laptop Patches
+#system_IRQ.txt
+
+# This can fix non-working audio and also has an affect on HPET.
+#
+# Use this if you have issues with patched AppleHDA (required on almost all laptops)
+# or if you have issues with HPET (restart after wake).
+
+# IRQ fix
+into device name_hid PNP0000 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0100 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0B00 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0103 code_regex IRQNoFlags\s\(\)\n\s+\{.*\} removeall_matched;
+into device name_hid PNP0103 code_regex Name\s\(([^,]+),\sResourceTemplate\s\(\).*\n\s+\{((?:.|\n)*)\}\) replace_matched
+begin
+Name (%1, ResourceTemplate()\n
+{\n
+    IRQNoFlags() { 0, 8, 11, 15 }\n
+%2
+})\n
+end;
+
+#Maintained by: RehabMan for: Laptop Patches
+#system_HPET.txt
+
+# If you have panic "No HPETs available..." or have a abrubt restart
+# after waking from sleep, you may need this patch.
+# The patch makes sure the HPET device is always available.
+
+# HPET fix to avoid AppleIntelCPUPowerManagement panic
+into method label _STA parent_hid PNP0103 remove_entry;
+into device name_hid PNP0103 code_regex Name\s\(_STA\,\s+0x0F\) remove_matched;
+into device name_hid PNP0103 insert
+begin
+Name (_STA, 0x0F)\n
+end;
+
+into method label _CRS parent_hid PNP0103 remove_entry;
+into device name_hid PNP0103 insert
+begin
+Method (_CRS, 0, NotSerialized)\n
+{\n
+    Return (BUF0)\n
+}\n
+end;
+
+#Maintained by: RehabMan for: Laptop Patches
+#system_RTC.txt
+
+#   RTC fix
+into device name_hid PNP0B00 code_regex (IO\s\((?:\s*[^,]+,\s*(?:\/\/\s.*)?\s*\n)+\s*)(\dx\d+)(,\s*(?:\/\/\s.*)?\s*\n\s*\)) replace_matched begin %10x02%3 end;
